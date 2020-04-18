@@ -1,3 +1,3 @@
 # AutoIT Extractor
 
-AutoIT Resource Extractor
+View and Extract Resources in an AutoIT Compiled Executable
