@@ -154,10 +154,20 @@ namespace AutoIt_Extractor
         internal event EventHandler OnComplete;
         internal bool IsComplete { get; set; }
 
+        internal event EventHandler Update;
+
         internal void MarkComplete()
         {
             IsComplete = true;
             new Thread(() => OnComplete(this, null)).Start();
+        }
+
+        internal void DoUpdate()
+        {
+            if (Update != null)
+            {
+                new Thread(() => Update(this, null)).Start();
+            }
         }
 
         internal struct ProbablyHuffman
@@ -365,7 +375,7 @@ namespace AutoIt_Extractor
             return r;
         }
 
-        internal void Decompile(MainForm form)
+        internal void Decompile()
         {
             //evtDecompressed.WaitOne();
             //SourceCode = string.Empty;
@@ -386,6 +396,8 @@ namespace AutoIt_Extractor
                 return;
             }
 
+            State = "Decompiling ...";
+            DoUpdate();
             var buffer = new StringBuilder();
             int off = 0;
             var tokens = new List<string>();
@@ -513,9 +525,7 @@ namespace AutoIt_Extractor
             SourceCode = buffer.ToString();
             RawData = Encoding.ASCII.GetBytes(SourceCode);
             RawDataSize = (uint)buffer.Length;
-            //form.SetText("Decompiled.", form.lblStatus);
-            //evtDecompiled.Set();
-            //form.UpdateStatus(null, null);
+            DoUpdate();
         }
 
         private string GetStr(byte[] buf, ref int pos)
@@ -536,10 +546,10 @@ namespace AutoIt_Extractor
             return a + b;
         }
 
-        internal unsafe void Tidy(MainForm form)
+        internal unsafe void Tidy()
         {
             //new Thread(() => Decompile(form)).Start();
-            Decompile(form);
+            Decompile();
             //evtDecompiled.WaitOne();
 
             if (Status != Utils.STATUS.OK)
@@ -551,6 +561,7 @@ namespace AutoIt_Extractor
             }
             //form.SetText("Indenting Code...", form.lblStatus);
             State = "Indenting Code...";
+            DoUpdate();
             var res = Main.Tidy;
 
             int cavePos = Utils.Find(res, new byte[] { 0xdd, 0xcc, 0xbb, 0xaa, 0xdd, 0xcc, 0xbb, 0xaa });
@@ -629,8 +640,6 @@ namespace AutoIt_Extractor
             //form.SetText("Code Indented.", form.lblStatus);
             State = "Code Indented.";
             Status = Utils.STATUS.OK;
-            //evtIndented.Set();
-            //form.UpdateStatus(null, null);
             MarkComplete();
         }
 

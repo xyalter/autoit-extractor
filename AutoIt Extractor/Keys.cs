@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -8,10 +7,10 @@ namespace AutoIt_Extractor
 {
     internal class Legacy : EA05
     {
-        public override void Decompress(MainForm form, AU3_Resource res)
+        public override void Decompress(AU3_Resource res)
         {
             res.State = "Extracted";
-            //res.SourceState = Utils.SOURCE_STATE.Extracted;
+            res.DoUpdate();
             res.count = 0;
             //form.SetText("Decompressing...", form.lblStatus);
             if (res.CompressedSize == res.DecompressedSize)
@@ -27,6 +26,7 @@ namespace AutoIt_Extractor
             {
                 res.Status = Utils.STATUS.InvalidCompressedHeader;
                 res.State = "Invalid Compressed File Format!";
+                res.DoUpdate();
                 //res.evtDecompressed.Set();
                 return; // invalid signature
             }
@@ -65,6 +65,10 @@ namespace AutoIt_Extractor
             if (! res.Tag.Contains("SCRIPT"))
             {
                 res.MarkComplete();
+            }
+            else
+            {
+                res.DoUpdate();
             }
         }
     }
@@ -185,10 +189,11 @@ namespace AutoIt_Extractor
                 state.nums[0x18c+0xe3] = edx2;
             }
         }
-        public override void Decompress(MainForm form, AU3_Resource res)
+        public override void Decompress(AU3_Resource res)
         {
             res.State = "Extracted";
             res.count = 0;
+            res.DoUpdate();
             //form.SetText("Decompressing...", form.lblStatus);
             if (res.CompressedSize == res.DecompressedSize)
             {
@@ -204,6 +209,7 @@ namespace AutoIt_Extractor
                 res.Status = Utils.STATUS.InvalidCompressedHeader;
                 res.State = "Invalid Compressed File Format!";
                 //res.evtDecompressed.Set();
+                res.DoUpdate();
                 return; // invalid signature
             }
 
@@ -239,6 +245,10 @@ namespace AutoIt_Extractor
             if (! res.Tag.Contains("SCRIPT<"))
             {
                 res.MarkComplete();
+            }
+            else
+            {
+                res.DoUpdate();
             }
         }
 
@@ -390,10 +400,11 @@ namespace AutoIt_Extractor
             }
         }
 
-        public override void Decompress(MainForm form, AU3_Resource res)
+        public override void Decompress(AU3_Resource res)
         {
             res.State = "Extracted";
             res.count = 0;
+            res.DoUpdate();
             //form.SetText("Decompressing...", form.lblStatus);
             if (res.CompressedSize == res.DecompressedSize)
             {
@@ -402,6 +413,10 @@ namespace AutoIt_Extractor
                 if (! res.Tag.Contains("SCRIPT<"))
                 {
                     res.MarkComplete();
+                }
+                else
+                {
+                    res.DoUpdate();
                 }
                 return;
             }
@@ -444,6 +459,10 @@ namespace AutoIt_Extractor
             if (!res.Tag.Contains("SCRIPT<"))
             {
                 res.MarkComplete();
+            }
+            else
+            {
+                res.DoUpdate();
             }
         }
     }
@@ -498,7 +517,7 @@ namespace AutoIt_Extractor
         }
         //abstract public unsafe uint CustomExtractBits(AU3_Resource res);
         abstract public unsafe void ShittyEncoder(byte[] buffer, int key, bool add=true);
-        public abstract void Decompress(MainForm form, AU3_Resource res);
+        public abstract void Decompress(AU3_Resource res);
 
         public unsafe string DecodeString(byte[] script, int start, int size, int key, bool add=true)
         {

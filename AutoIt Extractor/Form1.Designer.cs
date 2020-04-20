@@ -4,8 +4,6 @@ using System.Linq;
 using System.Text;
 using System.Windows.Forms;
 using System.IO;
-using System.Reflection;
-using System.Drawing;
 using System.Threading;
 
 namespace AutoIt_Extractor
@@ -13,15 +11,31 @@ namespace AutoIt_Extractor
 	public partial class MainForm : Form
 	{
 		private static Dictionary<string, AU3_Resource> table;
-		private delegate void PtrSetText(string text, Control c);
+		private delegate void PtrSetAttr<T>(string attr, T val, Control c);
+		private delegate void PtrAppend(object val);
 		private Keys keys;
 
-		internal void SetText(string text, Control c)
+		internal void InvokeAppend(object val)
+		{
+			if (lstResources.InvokeRequired)
+			{
+				lstResources.Invoke(new PtrAppend(InvokeAppend), val);
+			}
+			else
+			{
+				lstResources.Items.Add(val);
+			}
+		}
+
+		internal void SetAttr<T>(string attr, T val, Control c)
 		{
 			if (c.InvokeRequired)
-				c.Invoke(new PtrSetText(SetText), new object[] { text, c });
+				c.Invoke(new PtrSetAttr<T>(SetAttr), attr, val, c);
 			else
-				c.Text = text;
+			{
+				var prop = typeof(Control).GetProperty(attr);
+				prop.SetValue(c, val, null);
+			}
 		}
 
 		public MainForm()
@@ -47,20 +61,29 @@ namespace AutoIt_Extractor
 
 		private void AnalyzeFile(string path)
 		{
-			txtResCSize.Text = "";
-			txtResDSize.Text = "";
-			txtResTag.Text = "";
-			txtResPath.Text = "";
-			txtResCTime.Text = "";
-			txtResMTime.Text = "";
-			txtResData.Text = "";
+			lstResources.Items.Clear();
+			new Thread(() =>
+			{
+				SetAttr("Text", "", txtResCSize);
+				SetAttr("Text", "", txtResDSize);
+				SetAttr("Text", "", txtResTag);
+				SetAttr("Text", "", txtResPath);
+				SetAttr("Text", "", txtResCTime);
+				SetAttr("Text", "", txtResMTime);
+				SetAttr("Text", "", txtResData);
 
+				new Thread(() => AnalyzeFileHelper(path)).Start();
+			}).Start();
+			lblStatus.ForeColor = System.Drawing.Color.Black;
+			lblStatus.Text = "Loading ...";
+		}
+
+		private void AnalyzeFileHelper(string path)
+		{
 			var stream = new FileStream(path, FileMode.Open, FileAccess.Read);
 			var contents = new byte[stream.Length];
 			stream.Read(contents, 0, contents.Length);
 			stream.Close();
-			stream.Dispose();
-
 			var _buf = new byte[contents.Length];
 			Array.Copy(contents, _buf, contents.Length);
 
@@ -75,8 +98,8 @@ namespace AutoIt_Extractor
 
 			if (pos == null || pos.Length == 0)
 			{
-				lblStatus.ForeColor = System.Drawing.Color.Red;
-				lblStatus.Text = "Script Not Found";
+				SetAttr("ForeColor", System.Drawing.Color.Red, lblStatus);
+				SetAttr("Text", "Script Not Found", lblStatus);
 				return;
 			}
 
@@ -100,8 +123,8 @@ namespace AutoIt_Extractor
 
 				if (stop == -1)
 				{
-					lblStatus.ForeColor = System.Drawing.Color.Red;
-					lblStatus.Text = "Script Not Found";
+					SetAttr("ForeColor", System.Drawing.Color.Red, lblStatus);
+					SetAttr("Text", "Script Not Found", lblStatus);
 					return;
 				}
 
@@ -119,18 +142,17 @@ namespace AutoIt_Extractor
 
 			if (endPos == -1 || startPos == -1 || szSubType.Length == 0)
 			{
-				lblStatus.ForeColor = System.Drawing.Color.Red;
-				lblStatus.Text = "Script Not Found";
+				SetAttr("ForeColor", System.Drawing.Color.Red, lblStatus);
+				SetAttr("Text", "Script Not Found", lblStatus);
 				return;
 			}
 
-			txtSourcePath.Text = path;
-			lstResources.Items.Clear();
+			SetAttr("Text", path, txtSourcePath);
 			var script = new byte[endPos - startPos];
 			Array.Copy(contents, startPos, script, 0, script.Length);
 
-			lblStatus.ForeColor = System.Drawing.Color.Green;
-			lblStatus.Text = "Loaded...";
+			SetAttr("ForeColor", System.Drawing.Color.Green, lblStatus);
+			SetAttr("Text", "Loaded ...", lblStatus);
 
 			string status = "";
 			try
@@ -139,8 +161,8 @@ namespace AutoIt_Extractor
 
 				if (status != "OK")
 				{
-					lblStatus.ForeColor = System.Drawing.Color.Red;
-					lblStatus.Text = "Error: " + status;
+					SetAttr("ForeColor", System.Drawing.Color.Red, lblStatus);
+					SetAttr("Text", "Error: " + status, lblStatus);
 					return;
 				}
 
@@ -148,12 +170,12 @@ namespace AutoIt_Extractor
 				foreach (var entry in resp)
 				{
 					table.Add(entry.ShortTag, entry);
-					lstResources.Items.Add(entry.ShortTag);
+					InvokeAppend(entry.ShortTag);
 				}
-			} catch (Exception)
+			} catch (Exception e)
 			{
-				lblStatus.ForeColor = System.Drawing.Color.Red;
-				lblStatus.Text = "Script not Found!";
+				SetAttr("ForeColor", System.Drawing.Color.Red, lblStatus);
+				SetAttr("Text", "Script Not Found", lblStatus);
 				return;
 			}
 		}
@@ -245,11 +267,11 @@ namespace AutoIt_Extractor
 			txtResDSize.Text = entry.DecompressedSize.ToString() + " bytes";
 			txtResTag.Text = entry.Tag;
 			txtResPath.Text = entry.Path;
-			txtResCTime.Text = DateTime.FromFileTime((long)entry.CreationTime).ToString("U");
-			txtResMTime.Text = DateTime.FromFileTime((long)entry.LastWriteTime).ToString("U");
+			txtResCTime.Text = DateTime.FromFileTime((long)entry.CreationTime).ToString("ddd, MMM dd yyyy, hh:mm:ss tt");
+			txtResMTime.Text = DateTime.FromFileTime((long)entry.LastWriteTime).ToString("ddd, MMM dd yyyy, hh:mm:ss tt");
 			if (entry.CompressedSize > 0 && !entry.IsComplete)
 			{
-				txtResData.Text = "Loading...";
+				txtResData.Text = "Loading ...";
 			}
 
 			/*if (! entry.IsCompressed)
@@ -262,16 +284,16 @@ namespace AutoIt_Extractor
 				new Thread(() =>
 				{
 					entry.count = 0;
-					keys.Decompress(this, entry);
+					keys.Decompress(entry);
 					if (entry.Tag.Contains("SCRIPT"))
 					{
-						entry.Tidy(this);
+						entry.Tidy();
 					}
 				}).Start();
 			}
 			if (entry.IsComplete)
 			{
-				SetText(entry.Dump(), txtResData);
+				SetAttr("Text", entry.Dump(), txtResData);
 			}
 			/*if (entry.IsCompressed)
 			{
@@ -315,6 +337,12 @@ namespace AutoIt_Extractor
 				pos += 4;   // "FILE"
 				AU3_Resource res = new AU3_Resource();
 
+				res.Update += (sender, evArgs) =>
+				{
+					var r = sender as AU3_Resource;
+					SetAttr("ForeColor", System.Drawing.Color.Green, lblStatus);
+					SetAttr("Text", r.State, lblStatus);
+				};
 				res.IsUnicode = keys.IsUnicode;
 
 				int temp = BitConverter.ToInt32(script, pos);
@@ -426,8 +454,8 @@ namespace AutoIt_Extractor
 
 				res.OnComplete += (o, args) =>
 				{
-					SetText(((AU3_Resource)o).Dump(), txtResData);
-					SetText(((AU3_Resource)o).State, lblStatus);
+					SetAttr("Text", ((AU3_Resource)o).Dump(), txtResData);
+					SetAttr("Text", ((AU3_Resource)o).State, lblStatus);
 				};
 
 				res.SourceState = Utils.SOURCE_STATE.Extracted;
@@ -489,17 +517,17 @@ namespace AutoIt_Extractor
             // 
             this.txtSourcePath.Font = new System.Drawing.Font("Tahoma", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.txtSourcePath.Location = new System.Drawing.Point(129, 17);
-            this.txtSourcePath.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.txtSourcePath.Margin = new System.Windows.Forms.Padding(4);
             this.txtSourcePath.Name = "txtSourcePath";
             this.txtSourcePath.ReadOnly = true;
-            this.txtSourcePath.Size = new System.Drawing.Size(503, 27);
+            this.txtSourcePath.Size = new System.Drawing.Size(545, 27);
             this.txtSourcePath.TabIndex = 1;
             // 
             // btnBrowse
             // 
             this.btnBrowse.Font = new System.Drawing.Font("Tahoma", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btnBrowse.Location = new System.Drawing.Point(641, 17);
-            this.btnBrowse.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.btnBrowse.Location = new System.Drawing.Point(682, 17);
+            this.btnBrowse.Margin = new System.Windows.Forms.Padding(4);
             this.btnBrowse.Name = "btnBrowse";
             this.btnBrowse.Size = new System.Drawing.Size(128, 28);
             this.btnBrowse.TabIndex = 2;
@@ -511,9 +539,9 @@ namespace AutoIt_Extractor
             // 
             this.groupBox1.Controls.Add(this.lstResources);
             this.groupBox1.Location = new System.Drawing.Point(13, 54);
-            this.groupBox1.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.groupBox1.Margin = new System.Windows.Forms.Padding(4);
             this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Padding = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.groupBox1.Padding = new System.Windows.Forms.Padding(4);
             this.groupBox1.Size = new System.Drawing.Size(308, 348);
             this.groupBox1.TabIndex = 3;
             this.groupBox1.TabStop = false;
@@ -525,7 +553,7 @@ namespace AutoIt_Extractor
             this.lstResources.FormattingEnabled = true;
             this.lstResources.ItemHeight = 18;
             this.lstResources.Location = new System.Drawing.Point(13, 25);
-            this.lstResources.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.lstResources.Margin = new System.Windows.Forms.Padding(4);
             this.lstResources.Name = "lstResources";
             this.lstResources.Size = new System.Drawing.Size(280, 310);
             this.lstResources.TabIndex = 0;
@@ -575,27 +603,27 @@ namespace AutoIt_Extractor
             // 
             this.txtResTag.Font = new System.Drawing.Font("Consolas", 9F);
             this.txtResTag.Location = new System.Drawing.Point(151, 410);
-            this.txtResTag.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.txtResTag.Margin = new System.Windows.Forms.Padding(4);
             this.txtResTag.Name = "txtResTag";
             this.txtResTag.ReadOnly = true;
-            this.txtResTag.Size = new System.Drawing.Size(617, 25);
+            this.txtResTag.Size = new System.Drawing.Size(659, 25);
             this.txtResTag.TabIndex = 7;
             // 
             // txtResPath
             // 
-            this.txtResPath.Font = new System.Drawing.Font("Consolas", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.txtResPath.Font = new System.Drawing.Font("Consolas", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.txtResPath.Location = new System.Drawing.Point(151, 441);
-            this.txtResPath.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.txtResPath.Margin = new System.Windows.Forms.Padding(4);
             this.txtResPath.Name = "txtResPath";
             this.txtResPath.ReadOnly = true;
-            this.txtResPath.Size = new System.Drawing.Size(617, 24);
+            this.txtResPath.Size = new System.Drawing.Size(659, 25);
             this.txtResPath.TabIndex = 7;
             // 
             // txtResCSize
             // 
             this.txtResCSize.Font = new System.Drawing.Font("Consolas", 9F);
             this.txtResCSize.Location = new System.Drawing.Point(151, 471);
-            this.txtResCSize.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.txtResCSize.Margin = new System.Windows.Forms.Padding(4);
             this.txtResCSize.Name = "txtResCSize";
             this.txtResCSize.ReadOnly = true;
             this.txtResCSize.Size = new System.Drawing.Size(209, 25);
@@ -605,7 +633,7 @@ namespace AutoIt_Extractor
             // 
             this.txtResDSize.Font = new System.Drawing.Font("Consolas", 9F);
             this.txtResDSize.Location = new System.Drawing.Point(151, 503);
-            this.txtResDSize.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.txtResDSize.Margin = new System.Windows.Forms.Padding(4);
             this.txtResDSize.Name = "txtResDSize";
             this.txtResDSize.ReadOnly = true;
             this.txtResDSize.Size = new System.Drawing.Size(209, 25);
@@ -635,20 +663,20 @@ namespace AutoIt_Extractor
             // 
             this.txtResCTime.Font = new System.Drawing.Font("Consolas", 9F);
             this.txtResCTime.Location = new System.Drawing.Point(499, 471);
-            this.txtResCTime.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.txtResCTime.Margin = new System.Windows.Forms.Padding(4);
             this.txtResCTime.Name = "txtResCTime";
             this.txtResCTime.ReadOnly = true;
-            this.txtResCTime.Size = new System.Drawing.Size(269, 25);
+            this.txtResCTime.Size = new System.Drawing.Size(311, 25);
             this.txtResCTime.TabIndex = 7;
             // 
             // txtResMTime
             // 
             this.txtResMTime.Font = new System.Drawing.Font("Consolas", 9F);
             this.txtResMTime.Location = new System.Drawing.Point(499, 503);
-            this.txtResMTime.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.txtResMTime.Margin = new System.Windows.Forms.Padding(4);
             this.txtResMTime.Name = "txtResMTime";
             this.txtResMTime.ReadOnly = true;
-            this.txtResMTime.Size = new System.Drawing.Size(269, 25);
+            this.txtResMTime.Size = new System.Drawing.Size(311, 25);
             this.txtResMTime.TabIndex = 7;
             // 
             // txtResData
@@ -657,12 +685,12 @@ namespace AutoIt_Extractor
             this.txtResData.AcceptsTab = true;
             this.txtResData.Font = new System.Drawing.Font("Courier New", 10.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.txtResData.Location = new System.Drawing.Point(333, 65);
-            this.txtResData.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.txtResData.Margin = new System.Windows.Forms.Padding(4);
             this.txtResData.Multiline = true;
             this.txtResData.Name = "txtResData";
             this.txtResData.ReadOnly = true;
             this.txtResData.ScrollBars = System.Windows.Forms.ScrollBars.Both;
-            this.txtResData.Size = new System.Drawing.Size(435, 298);
+            this.txtResData.Size = new System.Drawing.Size(477, 298);
             this.txtResData.TabIndex = 9;
             // 
             // btnDump
@@ -670,7 +698,7 @@ namespace AutoIt_Extractor
             this.btnDump.Enabled = false;
             this.btnDump.Font = new System.Drawing.Font("Tahoma", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.btnDump.Location = new System.Drawing.Point(333, 372);
-            this.btnDump.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.btnDump.Margin = new System.Windows.Forms.Padding(4);
             this.btnDump.Name = "btnDump";
             this.btnDump.Size = new System.Drawing.Size(148, 31);
             this.btnDump.TabIndex = 10;
@@ -684,7 +712,7 @@ namespace AutoIt_Extractor
             this.lblStatus.Location = new System.Drawing.Point(11, 539);
             this.lblStatus.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.lblStatus.Name = "lblStatus";
-            this.lblStatus.Size = new System.Drawing.Size(758, 25);
+            this.lblStatus.Size = new System.Drawing.Size(799, 25);
             this.lblStatus.TabIndex = 11;
             // 
             // MainForm
@@ -692,7 +720,7 @@ namespace AutoIt_Extractor
             this.AllowDrop = true;
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(785, 575);
+            this.ClientSize = new System.Drawing.Size(823, 575);
             this.Controls.Add(this.txtResMTime);
             this.Controls.Add(this.txtResCTime);
             this.Controls.Add(this.label7);
@@ -714,7 +742,7 @@ namespace AutoIt_Extractor
             this.Controls.Add(this.lblStatus);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
-            this.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.Margin = new System.Windows.Forms.Padding(4);
             this.MaximizeBox = false;
             this.Name = "MainForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
