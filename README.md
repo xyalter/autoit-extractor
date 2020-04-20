@@ -9,7 +9,7 @@ View and Extract Resources in an AutoIT Compiled Executable
 
 # Prequisites
 
-## Need .NET 4.0 Runtime
+## Need .NET 3.5+ Runtime
 
 # Download
 
