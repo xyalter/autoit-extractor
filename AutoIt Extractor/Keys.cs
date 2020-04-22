@@ -31,21 +31,54 @@ namespace AutoIt_Extractor
                 return; // invalid signature
             }
 
-            res.DecompressorInitLegacy();
-                
-            while (res.spos < res.DecompressedSize)
+            if (BitConverter.ToUInt32(res.RawData, 0) == 0x3130424a)
             {
-                res.r = res.sub_417518(this);
-                if (res.r < 0x100)
+                try
                 {
-                    res.pMem[res.spos++] = (byte)res.r;
+                    res.JB01_Decompress(this);
+                } catch (Exception)
+                {
+                    res.count = 0;
+                    res.pos = 8;
+                    res.DecompressorInitLegacy();
+
+                    while (res.spos < res.DecompressedSize)
+                    {
+                        res.r = res.sub_417518(this);
+                        if (res.r < 0x100)
+                        {
+                            res.pMem[res.spos++] = (byte)res.r;
+                        }
+                        else
+                        {
+                            res.v = res.sub_417665(res.r, this) + 3;
+                            res.delta = res.spos - res.sub_4176a5(this);
+                            while (res.spos < res.pMem.Length && res.v-- > 0)
+                                res.pMem[res.spos++] = res.pMem[res.delta++];
+                        }
+                    }
                 }
-                else
+            }
+            else
+            {
+                res.count = 0;
+                res.pos = 8;
+                res.DecompressorInitLegacy();
+
+                while (res.spos < res.DecompressedSize)
                 {
-                    res.v = res.sub_417665(res.r, this) + 3;
-                    res.delta = res.spos - res.sub_4176a5(this);
-                    while (res.spos < res.pMem.Length && res.v-- > 0)
-                        res.pMem[res.spos++] = res.pMem[res.delta++];
+                    res.r = res.sub_417518(this);
+                    if (res.r < 0x100)
+                    {
+                        res.pMem[res.spos++] = (byte)res.r;
+                    }
+                    else
+                    {
+                        res.v = res.sub_417665(res.r, this) + 3;
+                        res.delta = res.spos - res.sub_4176a5(this);
+                        while (res.spos < res.pMem.Length && res.v-- > 0)
+                            res.pMem[res.spos++] = res.pMem[res.delta++];
+                    }
                 }
             }
             res.RawDataSize = res.DecompressedSize;
@@ -71,6 +104,48 @@ namespace AutoIt_Extractor
                 res.DoUpdate();
             }
         }
+
+        internal class Rand2
+        {
+            private uint seed;
+
+            internal Rand2(uint seed)
+            {
+                this.seed = seed;
+            }
+
+            internal uint Rand()
+            {
+                seed = seed * 0x343fd + 0x269ec3;
+                return seed >> 16 & 0x7fff;
+            }
+        }
+
+        public override unsafe void ShittyEncoder(byte[] buffer, int key, bool add=true, bool useOldRand=false)
+        {
+            int k = key;
+            if (add)
+            {
+                k += buffer.Length;
+            }
+            else
+            {
+                // add 0x849 which is sum(map(ord, md5('').digest()))
+                k += 0x849;
+            }
+            if (useOldRand)
+            {
+                var rnd = new Rand2((uint)k);
+                for (int i = 0; i < buffer.Length; ++i)
+                    buffer[i] ^= (byte)rnd.Rand();
+            }
+            else
+            {
+                Random.SRand(k);
+                for (int i = 0; i < buffer.Length; ++i)
+                    buffer[i] ^= Random.Next();
+            }
+        }
     }
 
     internal class EA05 : Keys
@@ -88,7 +163,7 @@ namespace AutoIt_Extractor
             IsUnicode = false;
         }
 
-        public override unsafe void ShittyEncoder(byte[] buffer, int key, bool add=true)
+        public override unsafe void ShittyEncoder(byte[] buffer, int key, bool add=true, bool useOldRand=false)
         {
             int k = key;
             if (add)
@@ -105,7 +180,7 @@ namespace AutoIt_Extractor
                 buffer[i] ^= Random.Next();
         }
 
-        private class Random
+        internal class Random
         {
             static RandState state;
             public static void SRand(int key)
@@ -269,7 +344,7 @@ namespace AutoIt_Extractor
             IsUnicode = true;
         }
 
-        public override unsafe void ShittyEncoder(byte[] buffer, int key, bool add=true)
+        public override unsafe void ShittyEncoder(byte[] buffer, int key, bool add=true, bool useOldRand = false)
         {
             Random.Init0();
             int k = key;
@@ -516,14 +591,14 @@ namespace AutoIt_Extractor
             return res.ans >> 0x10;
         }
         //abstract public unsafe uint CustomExtractBits(AU3_Resource res);
-        abstract public unsafe void ShittyEncoder(byte[] buffer, int key, bool add=true);
+        abstract public unsafe void ShittyEncoder(byte[] buffer, int key, bool add=true, bool useOldRand = false);
         public abstract void Decompress(AU3_Resource res);
 
-        public unsafe string DecodeString(byte[] script, int start, int size, int key, bool add=true)
+        public unsafe string DecodeString(byte[] script, int start, int size, int key, bool add=true, bool useOldRand = false)
         {
             byte[] buf = new byte[size];
             Array.Copy(script, start, buf, 0, size);
-            ShittyEncoder(buf, key, add);
+            ShittyEncoder(buf, key, add, useOldRand);
             if (IsUnicode)
                 return Encoding.Unicode.GetString(buf);
             else

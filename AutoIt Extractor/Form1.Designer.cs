@@ -14,6 +14,7 @@ namespace AutoIt_Extractor
 		private delegate void PtrSetAttr<T>(string attr, T val, Control c);
 		private delegate void PtrAppend(object val);
 		private Keys keys;
+		private string argFile;
 
 		internal void InvokeAppend(object val)
 		{
@@ -38,19 +39,28 @@ namespace AutoIt_Extractor
 			}
 		}
 
-		public MainForm()
+		public MainForm(string[] argv)
 		{
 			InitializeComponent();
+			argFile = null;
+			if (argv.Length == 1)
+			{
+				argFile = argv[0];
+			}
 		}
 
 		private void MainForm_Load(object sender, EventArgs e)
 		{
 			AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
+			if (argFile != null)
+			{
+				AnalyzeFile(argFile);
+			}
 		}
 
 		private void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
 		{
-			MessageBox.Show(e.ExceptionObject.ToString());
+			MessageBox.Show(e.ExceptionObject.ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
 		}
 
 		private void MainForm_DragDrop(object source, DragEventArgs e)
@@ -88,7 +98,8 @@ namespace AutoIt_Extractor
 			Array.Copy(contents, _buf, contents.Length);
 
 			int[] pos = null;
-			for (int xor = 0; xor < 0x100; ++xor)
+			int xor;
+			for (xor = 0; xor < 0x100; ++xor)
 			{
 				for (int i = 0; i < _buf.Length; ++i)
 					_buf[i] = (byte)(contents[i] ^ xor);
@@ -106,6 +117,7 @@ namespace AutoIt_Extractor
 			contents = _buf;
 
 			int startPos = 0, endPos = -1;
+			var possibleScripts = new Dictionary<int, int>();
 			string szSubType = "";
 			foreach (var entry in pos)
 			{
@@ -129,18 +141,21 @@ namespace AutoIt_Extractor
 				}
 
 				endPos = stop;
+				possibleScripts.Add(startPos, endPos);
 			}
 
 			bool bLegacy = false;
 
 			if (endPos == -1 && startPos > 0)
 			{
-				endPos = contents.Length - 8;
+				endPos = contents.Length - 4; // -8 originally
+				if (! possibleScripts.ContainsKey(startPos))
+					possibleScripts.Add(startPos, endPos);
 				bLegacy = true;
 				szSubType = "AU3!OLD";
 			}
 
-			if (endPos == -1 || startPos == -1 || szSubType.Length == 0)
+			if (possibleScripts.Count == 0 || szSubType.Length == 0)
 			{
 				SetAttr("ForeColor", System.Drawing.Color.Red, lblStatus);
 				SetAttr("Text", "Script Not Found", lblStatus);
@@ -148,35 +163,41 @@ namespace AutoIt_Extractor
 			}
 
 			SetAttr("Text", path, txtSourcePath);
-			var script = new byte[endPos - startPos];
-			Array.Copy(contents, startPos, script, 0, script.Length);
+			
 
 			SetAttr("ForeColor", System.Drawing.Color.Green, lblStatus);
 			SetAttr("Text", "Loaded ...", lblStatus);
 
+			table = new Dictionary<string, AU3_Resource>();
 			string status = "";
-			try
+			foreach (var e in possibleScripts)
 			{
-				var resp = Unpack(script, bLegacy, szSubType, out status);
+				var script = new byte[e.Value - e.Key];
+				Array.Copy(contents, e.Key, script, 0, script.Length);
 
-				if (status != "OK")
+				try
 				{
-					SetAttr("ForeColor", System.Drawing.Color.Red, lblStatus);
-					SetAttr("Text", "Error: " + status, lblStatus);
-					return;
-				}
+					var resp = Unpack(script, bLegacy, szSubType, out status);
 
-				table = new Dictionary<string, AU3_Resource>();
-				foreach (var entry in resp)
-				{
-					table.Add(entry.ShortTag, entry);
-					InvokeAppend(entry.ShortTag);
+					if (status != "OK")
+					{
+						SetAttr("ForeColor", System.Drawing.Color.Red, lblStatus);
+						SetAttr("Text", "Error: " + status, lblStatus);
+						return;
+					}
+
+					foreach (var entry in resp)
+					{
+						table.Add(entry.ShortTag, entry);
+						InvokeAppend(entry.ShortTag);
+					}
 				}
-			} catch (Exception e)
-			{
-				SetAttr("ForeColor", System.Drawing.Color.Red, lblStatus);
-				SetAttr("Text", "Script Not Found", lblStatus);
-				return;
+				catch (Exception)
+				{
+					/*SetAttr("ForeColor", System.Drawing.Color.Red, lblStatus);
+					SetAttr("Text", "Script Not Found", lblStatus);*/
+					continue;
+				}
 			}
 		}
 
@@ -325,11 +346,22 @@ namespace AutoIt_Extractor
 				status = "Unsupported AutoIt Type - " + subtype;
 				return ans;
 			}
-			string password = "";
+			byte[] password = null;
+			bool oldAutoIt = false;
 			if (bLegacy)
 			{
 				var passLen = BitConverter.ToInt32(script, 0x11) ^ 0xfac1;
-				password = keys.DecodeString(script, 0x15, passLen, (0xc3d2 + passLen) - passLen);
+				password = new byte[passLen];
+				Array.Copy(script, 0x15, password, 0, passLen);
+				keys.ShittyEncoder(password, 0xc3d2, true, oldAutoIt);
+				//password = keys.DecodeString(script, 0x15, passLen, (0xc3d2 + passLen) - passLen, true, oldAutoIt);
+				if (! password.All(e => Utils.PRINTABLE.Contains((char)e)))
+				{
+					oldAutoIt = true;
+					//password = keys.DecodeString(script, 0x15, passLen, (0xc3d2 + passLen) - passLen, true, oldAutoIt);
+					Array.Copy(script, 0x15, password, 0, passLen);
+					keys.ShittyEncoder(password, 0xc3d2, true, oldAutoIt);
+				}
 				pos = 0x15 + passLen;
 			}
 			while (pos < script.Length)
@@ -345,6 +377,9 @@ namespace AutoIt_Extractor
 				};
 				res.IsUnicode = keys.IsUnicode;
 
+				if (pos >= script.Length)
+					break;
+
 				int temp = BitConverter.ToInt32(script, pos);
 				temp ^= keys.TagSize;
 				pos += 4;
@@ -359,9 +394,12 @@ namespace AutoIt_Extractor
 					return ans;
 				}
 
-				res.Tag = keys.DecodeString(script, pos, len, keys.Tag);
+				res.Tag = keys.DecodeString(script, pos, len, keys.Tag, true, oldAutoIt);
 
 				pos += len;
+
+				if (pos >= script.Length)
+					break;
 
 				temp = BitConverter.ToInt32(script, pos);
 				temp ^= keys.PathSize;
@@ -377,11 +415,17 @@ namespace AutoIt_Extractor
 					return ans;
 				}
 
-				res.Path = keys.DecodeString(script, pos, len, keys.Path);
+				res.Path = keys.DecodeString(script, pos, len, keys.Path, true, oldAutoIt);
 				pos += len;
+
+				if (pos >= script.Length)
+					break;
 
 				res.IsCompressed = BitConverter.ToBoolean(script, pos);
 				pos++;
+
+				if (pos >= script.Length)
+					break;
 
 				temp = BitConverter.ToInt32(script, pos);
 				temp ^= keys.CompressedSize;
@@ -393,6 +437,9 @@ namespace AutoIt_Extractor
 					status = "Invalid Size of Compressed Resource";
 					return ans;
 				}
+
+				if (pos >= script.Length)
+					break;
 
 				temp = BitConverter.ToInt32(script, pos);
 				temp ^= keys.DecompressedSize;
@@ -407,19 +454,22 @@ namespace AutoIt_Extractor
 					res.CheckSum = temp;
 				}
 
-				ulong time = BitConverter.ToUInt32(script, pos);
-				pos += 4;
-				time <<= 32;
-				time |= BitConverter.ToUInt32(script, pos);
-				pos += 4;
-				res.CreationTime = time;
+				if (! oldAutoIt)
+				{
+					ulong time = BitConverter.ToUInt32(script, pos);
+					pos += 4;
+					time <<= 32;
+					time |= BitConverter.ToUInt32(script, pos);
+					pos += 4;
+					res.CreationTime = time;
 
-				time = BitConverter.ToUInt32(script, pos);
-				pos += 4;
-				time <<= 32;
-				time |= BitConverter.ToUInt32(script, pos);
-				pos += 4;
-				res.LastWriteTime = time;
+					time = BitConverter.ToUInt32(script, pos);
+					pos += 4;
+					time <<= 32;
+					time |= BitConverter.ToUInt32(script, pos);
+					pos += 4;
+					res.LastWriteTime = time;
+				}
 
 				if (res.CompressedSize > 0)
 				{
@@ -430,26 +480,15 @@ namespace AutoIt_Extractor
 					if (bLegacy)
 					{
 						l -= 0x849;
-						l += password.Select(e => (int)e).Sum();
+						foreach (var x in password)
+						{
+							l += (int)(sbyte)x;
+						}
 					}
-					keys.ShittyEncoder(buf, l, false);
+					keys.ShittyEncoder(buf, l, false, oldAutoIt);
 					res.RawData = buf;
 					res.RawDataSize = res.CompressedSize;
 					pos += (int)res.CompressedSize;
-
-					/*res.count = 0;
-					if (res.IsCompressed)
-					{
-						new Thread(() => keys.Decompress(this, res)).Start();
-					}
-					else
-					{
-						res.SourceCode = Encoding.ASCII.GetString(buf);
-					}
-					if (res.Tag.Contains("SCRIPT<"))
-					{
-						new Thread(() => res.Tidy(this)).Start();
-					}*/
 				}
 
 				res.OnComplete += (o, args) =>
@@ -747,6 +786,7 @@ namespace AutoIt_Extractor
             this.Name = "MainForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "AutoIt Extractor";
+            this.Load += new System.EventHandler(this.MainForm_Load);
             this.DragDrop += new System.Windows.Forms.DragEventHandler(this.MainForm_DragDrop);
             this.DragEnter += new System.Windows.Forms.DragEventHandler(this.MainForm_DragEnter);
             this.groupBox1.ResumeLayout(false);

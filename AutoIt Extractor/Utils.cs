@@ -187,6 +187,37 @@ namespace AutoIt_Extractor
             SourceCode = "";
             IsComplete = false;
         }
+
+        internal void JB01_Decompress(Keys k)
+        {
+            count = 0;
+            pos = 0;
+            k.ExtractBits(this, 8);
+            k.ExtractBits(this, 8);
+            k.ExtractBits(this, 8);
+            k.ExtractBits(this, 8);
+
+            var size = k.ExtractBits(this, 0x10) << 16;
+            size |= k.ExtractBits(this, 0x10);
+            uint i = 0;
+            while (i < size)
+            {
+                if (k.ExtractBits(this, 1) == 0)
+                {
+                    pMem[i++] = (byte) k.ExtractBits(this, 8);
+                }
+                else
+                {
+                    var j = i - 3 - k.ExtractBits(this, 13);
+                    var times = 3 + k.ExtractBits(this, 4);
+
+                    while (times-- > 0)
+                    {
+                        pMem[i++] = pMem[j++];
+                    }
+                }
+            }
+        }
         
         public void DecompressorInitLegacy()
         {
@@ -403,7 +434,7 @@ namespace AutoIt_Extractor
             var tokens = new List<string>();
             int nLines = BitConverter.ToInt32(RawData, off);
             off += 4;
-            for (int i = 0; i < nLines;)
+            for (int i = 0; i < nLines && off < RawData.Length;)
             {
                 byte opCode = RawData[off++];
                 if (opCode == 0x7f)
@@ -516,6 +547,13 @@ namespace AutoIt_Extractor
                     tokens.Add("/");
                 else if (opCode == 0x4c)
                     tokens.Add("*");
+            }
+
+            if (tokens.Count > 0)
+            {
+                buffer.Append(string.Join(" ", tokens.ToArray<string>()));
+                buffer.Append("\r\n");
+                tokens.Clear();
             }
 
             Type = Utils.TYPE.Text;
