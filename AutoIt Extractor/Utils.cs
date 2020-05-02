@@ -6,6 +6,7 @@ using System.Text;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
+using System.Diagnostics;
 
 namespace AutoIt_Extractor
 {
@@ -522,7 +523,7 @@ namespace AutoIt_Extractor
                         first = "'";
                     tokens.Add(first + ans + first);
                 }
-                else if (opCode == 0x05)
+                else if (opCode <= 0x05)
                 {
                     tokens.Add("0x" + BitConverter.ToUInt32(RawData, off).ToString("x"));
                     off += 4;
