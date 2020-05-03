@@ -7,6 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Diagnostics;
+using System.IO;
 
 namespace AutoIt_Extractor
 {
@@ -609,14 +610,9 @@ namespace AutoIt_Extractor
             return Encoding.ASCII.GetString(temp);
         }
 
-        private static string Join(string a, string b)
-        {
-            if (!a.EndsWith("\\"))
-                a += "\\";
-            return a + b;
-        }
+        private static string Join(string a, string b) => System.IO.Path.Combine(a, b);
 
-        internal unsafe void Tidy()
+        internal unsafe void Tidy(MainForm sender)
         {
             //new Thread(() => Decompile(form)).Start();
             Decompile();
@@ -680,6 +676,26 @@ namespace AutoIt_Extractor
             System.IO.File.WriteAllBytes(keywordAPI, Main.keywords);
 
             var process = new System.Diagnostics.Process();
+
+            sender.Quit += (e, evArgs) =>
+            {
+                if (! process.HasExited)
+                {
+                    process.Kill();
+                }
+                process.WaitForExit();
+                try { System.IO.File.Delete(fName); } catch (Exception) { }
+                try { System.IO.File.Delete(Join(GetTempDir(), "tidy.ini")); } catch (Exception) { }
+                try { System.IO.File.Delete(au3API); } catch (Exception) { }
+                try { System.IO.File.Delete(funcAPI); } catch (Exception) { }
+                try { System.IO.File.Delete(macroAPI); } catch (Exception) { }
+                try { System.IO.File.Delete(keywordAPI); } catch (Exception) { }
+                try { System.IO.File.Delete(sName); } catch (Exception) { }
+                var dir0 = Join(GetTempDir(), "BackUp");
+                if (System.IO.Directory.Exists(dir0))
+                    System.IO.Directory.Delete(dir0, true);
+            };
+
             process.StartInfo.FileName = fName;
             process.StartInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
             process.StartInfo.UseShellExecute = true;
@@ -687,12 +703,12 @@ namespace AutoIt_Extractor
 
             process.WaitForExit();
 
-            System.IO.File.Delete(fName);
-            System.IO.File.Delete(Join(GetTempDir(), "tidy.ini"));
-            System.IO.File.Delete(au3API);
-            System.IO.File.Delete(funcAPI);
-            System.IO.File.Delete(macroAPI);
-            System.IO.File.Delete(keywordAPI);
+            try { System.IO.File.Delete(fName); } catch (Exception) { }
+            try { System.IO.File.Delete(Join(GetTempDir(), "tidy.ini")); } catch (Exception) { }
+            try { System.IO.File.Delete(au3API); } catch (Exception) { }
+            try { System.IO.File.Delete(funcAPI); } catch (Exception) { }
+            try { System.IO.File.Delete(macroAPI); } catch (Exception) { }
+            try { System.IO.File.Delete(keywordAPI); } catch (Exception) { }
             var src = System.IO.File.ReadAllText(sName).Trim('\r', '\n');
             if (src.Length > 0)
             {
@@ -700,7 +716,7 @@ namespace AutoIt_Extractor
                 RawData = Encoding.ASCII.GetBytes(src);
                 RawDataSize = (uint)src.Length;
             }
-            System.IO.File.Delete(sName);
+            try { System.IO.File.Delete(sName); } catch (Exception) { }
 
             var dir = Join(GetTempDir(), "BackUp");
             if (System.IO.Directory.Exists(dir))

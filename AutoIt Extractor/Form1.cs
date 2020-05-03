@@ -11,5 +11,10 @@ namespace AutoIt_Extractor
 {
     public partial class MainForm : Form
     {
+        private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            threads.ForEach(x => x.Abort());
+            Quit?.Invoke(sender, null);
+        }
     }
 }

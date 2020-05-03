@@ -15,6 +15,8 @@ namespace AutoIt_Extractor
 		private delegate void PtrAppend(object val);
 		private Keys keys;
 		private string argFile;
+		internal event EventHandler Quit;
+		private List<Thread> threads;
 
 		internal void InvokeAppend(object val)
 		{
@@ -47,6 +49,7 @@ namespace AutoIt_Extractor
 			{
 				argFile = argv[0];
 			}
+			threads = new List<Thread>();
 		}
 
 		private void MainForm_Load(object sender, EventArgs e)
@@ -302,15 +305,23 @@ namespace AutoIt_Extractor
 
 			if (entry.SourceState == Utils.SOURCE_STATE.Extracted)
 			{
-				new Thread(() =>
+				var newThread = new Thread(() =>
 				{
-					entry.count = 0;
-					keys.Decompress(entry);
-					if (entry.Tag.Contains("SCRIPT"))
+					try
 					{
-						entry.Tidy();
+						entry.count = 0;
+						keys.Decompress(entry);
+						if (entry.Tag.Contains("SCRIPT"))
+						{
+							entry.Tidy(this);
+						}
 					}
-				}).Start();
+					catch (ThreadAbortException)
+					{ }
+				});
+
+				threads.Add(newThread);
+				newThread.Start();
 			}
 			if (entry.IsComplete)
 			{
@@ -786,6 +797,7 @@ namespace AutoIt_Extractor
             this.Name = "MainForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "AutoIt Extractor";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.MainForm_FormClosing);
             this.Load += new System.EventHandler(this.MainForm_Load);
             this.DragDrop += new System.Windows.Forms.DragEventHandler(this.MainForm_DragDrop);
             this.DragEnter += new System.Windows.Forms.DragEventHandler(this.MainForm_DragEnter);
