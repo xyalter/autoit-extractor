@@ -4,6 +4,8 @@ View and Extract Resources in an AutoIT Compiled Executable
 
 # Features
 
+* Supports executable files (`*.exe`), autoit compiled binaries (`*.a3x`)
+* Files can be drag-n-dropped into the UI (or on the icon)
 * Lists all the resources, including embedded files
 * Supports all AutoIt versions, including AutoHotKey encoded scripts
 * Doesn't execute the target binary like `Exe2Aut`
