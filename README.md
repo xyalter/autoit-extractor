@@ -17,8 +17,13 @@ View and Extract Resources in an AutoIT Compiled Executable
 
 # Download
 
-* [x64 Executable](/AutoIt Extractor/bin/x64/Release/AutoIt Extractor.exe)
-* [x86 Executable](AutoIt Extractor/bin/x86/Release/AutoIt Extractor.exe)
+- .NET 3.5
+    * [x64 Executable](/AutoIt Extractor/bin/x64/Release/AutoIt Extractor.exe)
+    * [x86 Executable](/AutoIt Extractor/bin/x86/Release/AutoIt Extractor.exe)
+
+- .NET 4.0
+    * [x64 Executable](net40/AutoIt Extractor/bin/x64/Release/AutoIt Extractor.exe)
+    * [x86 Executable](net40/AutoIt Extractor/bin/x86/Release/AutoIt Extractor.exe)
 
 # Screenshot
 
