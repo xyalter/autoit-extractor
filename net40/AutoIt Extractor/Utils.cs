@@ -73,18 +73,39 @@ namespace AutoIt_Extractor
 
     class AU3_Resource
     {
+        const int LIMIT = 1024;
         internal string Dump()
         {
+            var trailer = "\r\n\r\nClick 'Save Resource' to dump the entire data!\r\n";
+            Func<string,string> limitText = e =>
+            {
+                if (e.Length < LIMIT)
+                    return e;
+                else
+                    return e.Substring(0, LIMIT) + trailer;
+            };
             if (Tag.Contains("SCRIPT<"))
             {
                 if (SourceCode.Length > 0)
                 {
-                    return SourceCode;
+                    return limitText(SourceCode);
                 }
                 if (Tag.Contains("UNICODE"))
-                    return Encoding.Unicode.GetString(RawData);
+                {
+                    if (RawData.Length < LIMIT)
+                        return Encoding.Unicode.GetString(RawData);
+                    var d = new byte[LIMIT];
+                    Array.Copy(RawData, d, LIMIT);
+                    return Encoding.Unicode.GetString(d) + trailer;
+                }
                 else
-                    return Encoding.ASCII.GetString(RawData);
+                {
+                    if (RawData.Length < LIMIT)
+                        return Encoding.ASCII.GetString(RawData);
+                    var d = new byte[LIMIT];
+                    Array.Copy(RawData, d, LIMIT);
+                    return Encoding.ASCII.GetString(d) + trailer;
+                }
             }
 
             byte[] ptr = RawData;
@@ -94,21 +115,32 @@ namespace AutoIt_Extractor
             if (ptr.All(e => Utils.PRINTABLE.Contains((char)e)))
             {
                 Type = Utils.TYPE.Text;
-                return Encoding.ASCII.GetString(ptr);
+                if (ptr.Length < LIMIT)
+                    return Encoding.ASCII.GetString(ptr);
+                var d = new byte[LIMIT];
+                Array.Copy(ptr, d, LIMIT);
+                return Encoding.ASCII.GetString(d) + trailer;
             }
 
             Type = Utils.TYPE.Binary;
             var buf = new StringBuilder();
-            int n = 12;
+            int n = 12, c = 0;
             foreach (var e in ptr)
             {
+                if (c >= LIMIT)
+                {
+                    buf.Append(trailer);
+                    break;
+                }
                 if (n == 0)
                 {
                     buf.Append("\r\n");
                     n = 12;
+                    c++;
                 }
                 n--;
                 buf.Append(e.ToString("X2"));
+                c += 2;
                 buf.Append(' ');
             }
             return buf.ToString();

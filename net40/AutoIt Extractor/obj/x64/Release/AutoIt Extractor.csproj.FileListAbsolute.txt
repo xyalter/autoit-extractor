@@ -74,6 +74,32 @@ C:\Users\NEIL\Desktop\AutoIt Extractor (.NET Framework)\AutoIt Extractor\bin\x64
 C:\Users\NEIL\Desktop\AutoIt Extractor (.NET Framework)\AutoIt Extractor\bin\x64\Release\normnfkc.nlp
 C:\Users\NEIL\Desktop\AutoIt Extractor (.NET Framework)\AutoIt Extractor\bin\x64\Release\normnfkd.nlp
 C:\Users\NEIL\Desktop\AutoIt Extractor (.NET Framework)\AutoIt Extractor\obj\x64\Release\AutoIt Extractor.csproj.CopyComplete
+D:\My Projects\AutoIt Extractor\AutoIt Extractor\bin\x64\Release\AutoIt Extractor.exe.config
+D:\My Projects\AutoIt Extractor\AutoIt Extractor\bin\x64\Release\AutoIt Extractor.exe
+D:\My Projects\AutoIt Extractor\AutoIt Extractor\bin\x64\Release\AutoIt Extractor.pdb
+D:\My Projects\AutoIt Extractor\AutoIt Extractor\bin\x64\Release\mscorlib.dll
+D:\My Projects\AutoIt Extractor\AutoIt Extractor\bin\x64\Release\sortkey.nlp
+D:\My Projects\AutoIt Extractor\AutoIt Extractor\bin\x64\Release\sorttbls.nlp
+D:\My Projects\AutoIt Extractor\AutoIt Extractor\bin\x64\Release\big5.nlp
+D:\My Projects\AutoIt Extractor\AutoIt Extractor\bin\x64\Release\bopomofo.nlp
+D:\My Projects\AutoIt Extractor\AutoIt Extractor\bin\x64\Release\ksc.nlp
+D:\My Projects\AutoIt Extractor\AutoIt Extractor\bin\x64\Release\prc.nlp
+D:\My Projects\AutoIt Extractor\AutoIt Extractor\bin\x64\Release\prcp.nlp
+D:\My Projects\AutoIt Extractor\AutoIt Extractor\bin\x64\Release\xjis.nlp
+D:\My Projects\AutoIt Extractor\AutoIt Extractor\bin\x64\Release\normidna.nlp
+D:\My Projects\AutoIt Extractor\AutoIt Extractor\bin\x64\Release\normnfc.nlp
+D:\My Projects\AutoIt Extractor\AutoIt Extractor\bin\x64\Release\normnfd.nlp
+D:\My Projects\AutoIt Extractor\AutoIt Extractor\bin\x64\Release\normnfkc.nlp
+D:\My Projects\AutoIt Extractor\AutoIt Extractor\bin\x64\Release\normnfkd.nlp
+D:\My Projects\AutoIt Extractor\AutoIt Extractor\obj\x64\Release\AutoIt Extractor.csprojAssemblyReference.cache
+D:\My Projects\AutoIt Extractor\AutoIt Extractor\obj\x64\Release\AutoIt_Extractor.MainForm.resources
+D:\My Projects\AutoIt Extractor\AutoIt Extractor\obj\x64\Release\AutoIt_Extractor.Main.resources
+D:\My Projects\AutoIt Extractor\AutoIt Extractor\obj\x64\Release\AutoIt_Extractor.Properties.Resources.resources
+D:\My Projects\AutoIt Extractor\AutoIt Extractor\obj\x64\Release\AutoIt Extractor.csproj.GenerateResource.cache
+D:\My Projects\AutoIt Extractor\AutoIt Extractor\obj\x64\Release\AutoIt Extractor.csproj.CoreCompileInputs.cache
+D:\My Projects\AutoIt Extractor\AutoIt Extractor\obj\x64\Release\AutoIt Extractor.csproj.CopyComplete
+D:\My Projects\AutoIt Extractor\AutoIt Extractor\obj\x64\Release\AutoIt Extractor.exe
+D:\My Projects\AutoIt Extractor\AutoIt Extractor\obj\x64\Release\AutoIt Extractor.pdb
 D:\My Projects\AutoIt Extractor\autoit-extractor\net40\AutoIt Extractor\bin\x64\Release\AutoIt Extractor.exe.config
 D:\My Projects\AutoIt Extractor\autoit-extractor\net40\AutoIt Extractor\bin\x64\Release\AutoIt Extractor.exe
 D:\My Projects\AutoIt Extractor\autoit-extractor\net40\AutoIt Extractor\bin\x64\Release\AutoIt Extractor.pdb
