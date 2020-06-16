@@ -138,9 +138,10 @@ namespace AutoIt_Extractor
 
 				if (stop == -1)
 				{
-					SetAttr("ForeColor", System.Drawing.Color.Red, lblStatus);
+					/*SetAttr("ForeColor", System.Drawing.Color.Red, lblStatus);
 					SetAttr("Text", "Script Not Found", lblStatus);
-					return;
+					return;*/
+					stop = contents.Length;
 				}
 
 				endPos = stop;
@@ -173,6 +174,7 @@ namespace AutoIt_Extractor
 
 			table = new Dictionary<string, AU3_Resource>();
 			string status = "";
+			int nValidScripts = 0;
 			foreach (var e in possibleScripts)
 			{
 				var script = new byte[e.Value - e.Key];
@@ -189,6 +191,8 @@ namespace AutoIt_Extractor
 						return;
 					}
 
+					++nValidScripts;
+
 					foreach (var entry in resp)
 					{
 						table.Add(entry.ShortTag, entry);
@@ -197,10 +201,14 @@ namespace AutoIt_Extractor
 				}
 				catch (Exception)
 				{
-					/*SetAttr("ForeColor", System.Drawing.Color.Red, lblStatus);
-					SetAttr("Text", "Script Not Found", lblStatus);*/
 					continue;
 				}
+			}
+
+			if (nValidScripts == 0)
+			{
+				SetAttr("ForeColor", System.Drawing.Color.Red, lblStatus);
+				SetAttr("Text", "Script Not Found", lblStatus);
 			}
 		}
 
@@ -399,10 +407,10 @@ namespace AutoIt_Extractor
 				if (keys.IsUnicode)
 					len += temp;
 
-				if (len >= script.Length)
+				if (len >= script.Length-pos)
 				{
-					status = "Invalid Tag Length";
-					return ans;
+					//status = "Invalid Tag Length";
+					break;
 				}
 
 				res.Tag = keys.DecodeString(script, pos, len, keys.Tag, true, oldAutoIt);
@@ -420,10 +428,10 @@ namespace AutoIt_Extractor
 				if (keys.IsUnicode)
 					len += temp;
 
-				if (len >= script.Length)
+				if (len >= script.Length-pos)
 				{
-					status = "Invalid Path Length";
-					return ans;
+					//status = "Invalid Path Length";
+					break;
 				}
 
 				res.Path = keys.DecodeString(script, pos, len, keys.Path, true, oldAutoIt);
@@ -504,7 +512,7 @@ namespace AutoIt_Extractor
 
 				res.OnComplete += (o, args) =>
 				{
-					SetAttr("Text", ((AU3_Resource)o).Dump(), txtResData);
+					//SetAttr("Text", ((AU3_Resource)o).Dump(), txtResData);
 					SetAttr("Text", ((AU3_Resource)o).State, lblStatus);
 				};
 

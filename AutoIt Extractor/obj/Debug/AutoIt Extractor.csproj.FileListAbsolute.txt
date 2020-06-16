@@ -29,3 +29,14 @@ C:\Users\NEIL\Desktop\AutoIt Extractor (.NET Framework)\AutoIt Extractor\obj\Deb
 C:\Users\NEIL\Desktop\AutoIt Extractor (.NET Framework)\AutoIt Extractor\obj\Debug\AutoIt Extractor.exe
 C:\Users\NEIL\Desktop\AutoIt Extractor (.NET Framework)\AutoIt Extractor\obj\Debug\AutoIt Extractor.pdb
 C:\Users\NEIL\Desktop\AutoIt Extractor (.NET Framework)\AutoIt Extractor\bin\Debug\AutoIt Extractor.exe.config
+D:\My Projects\AutoIt Extractor\AutoIt Extractor\bin\Debug\AutoIt Extractor.exe.config
+D:\My Projects\AutoIt Extractor\AutoIt Extractor\bin\Debug\AutoIt Extractor.exe
+D:\My Projects\AutoIt Extractor\AutoIt Extractor\bin\Debug\AutoIt Extractor.pdb
+D:\My Projects\AutoIt Extractor\AutoIt Extractor\obj\Debug\AutoIt Extractor.csprojAssemblyReference.cache
+D:\My Projects\AutoIt Extractor\AutoIt Extractor\obj\Debug\AutoIt_Extractor.MainForm.resources
+D:\My Projects\AutoIt Extractor\AutoIt Extractor\obj\Debug\AutoIt_Extractor.Main.resources
+D:\My Projects\AutoIt Extractor\AutoIt Extractor\obj\Debug\AutoIt_Extractor.Properties.Resources.resources
+D:\My Projects\AutoIt Extractor\AutoIt Extractor\obj\Debug\AutoIt Extractor.csproj.GenerateResource.cache
+D:\My Projects\AutoIt Extractor\AutoIt Extractor\obj\Debug\AutoIt Extractor.csproj.CoreCompileInputs.cache
+D:\My Projects\AutoIt Extractor\AutoIt Extractor\obj\Debug\AutoIt Extractor.exe
+D:\My Projects\AutoIt Extractor\AutoIt Extractor\obj\Debug\AutoIt Extractor.pdb
